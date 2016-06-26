@@ -1,6 +1,6 @@
 {
   "name": "@marionebl/babel-live",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Live reloading of servers compiled via babel",
   "scripts": {
     "start": "npm run build -- --watch",
@@ -8,7 +8,10 @@
     "build": "babel src --out-dir lib"
   },
   "babel": {
-    "presets": ["es2015-node4", "stage-0"]
+    "presets": [
+      "es2015-node4",
+      "stage-0"
+    ]
   },
   "files": [
     "index.js",
