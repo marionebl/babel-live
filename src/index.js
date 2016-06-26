@@ -1,15 +1,17 @@
 import path from 'path';
-import fs from'fs';
+import fs from 'fs';
 import vm from 'vm';
+import {EventEmitter} from 'events';
 
 import resolve from 'resolve';
 import chokidar from 'chokidar';
 import {transform} from 'babel-core';
 
 let called = false;
-export default function configure(entrypoint, overrideRequires, opts) {
+export default function configure(entrypoint, overrideRequires = {}, opts = {}) {
   if (called) throw new Error('You can only use babel-live once per project');
   called = true;
+  const emitter = new EventEmitter();
 
   opts = opts || {};
   if (opts.sourceMap !== false) opts.sourceMap = "inline";
@@ -28,6 +30,7 @@ export default function configure(entrypoint, overrideRequires, opts) {
     if (!requireInProgress) {
       requireInProgress = true;
       babelRequire(entrypoint);
+      emitter.emit('hotswap');
       setTimeout(() => {
         requireInProgress = false;
         if (extraRequireNeeded) {
@@ -73,6 +76,7 @@ export default function configure(entrypoint, overrideRequires, opts) {
     requireCache[filename] = {};
     const mod = {
       exports: requireCache[filename],
+      hotswap: emitter
     };
     function proxiedRequire(id) {
       if (overrideRequires[id]) {
