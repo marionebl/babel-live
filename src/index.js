@@ -5,7 +5,10 @@ import {EventEmitter} from 'events';
 
 import resolve from 'resolve';
 import chokidar from 'chokidar';
-import {transform} from 'babel-core';
+import {parse} from 'babylon';
+import {transformFromAst} from 'babel-core';
+
+import bindImports from './bind-imports';
 
 let called = false;
 export default function configure(entrypoint, overrideRequires = {}, opts = {}) {
@@ -117,8 +120,29 @@ export default function configure(entrypoint, overrideRequires = {}, opts = {}) 
 
   function babelLoad(filename) {
     const src = fs.readFileSync(filename, 'utf8');
+    const ast = parse(src, {
+      sourceType: 'module',
+      plugins: [
+        'jsx',
+        'asyncFunctions',
+        'classConstructorCall',
+        'doExpressions',
+        'trailingFunctionCommas',
+        'objectRestSpread',
+        'decorators',
+        'classProperties',
+        'exportExtensions',
+        'exponentiationOperator',
+        'asyncGenerators',
+        'functionBind',
+        'functionSent'
+      ]
+    });
+    const bound = bindImports(ast);
+
     opts.filename = filename;
-    return transform(src, opts).code;
+    const {code} = transformFromAst(bound, src, opts);
+    return code;
   }
 
   return babelRequire(entrypoint);

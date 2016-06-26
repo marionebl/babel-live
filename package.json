@@ -18,9 +18,11 @@
     "lib/index.js"
   ],
   "dependencies": {
-    "babel-core": "^6.3.26",
+    "babel-core": "^6.10.4",
+    "babel-types": "^6.10.2",
+    "babylon": "^6.8.2",
     "chokidar": "^1.4.1",
-    "resolve": "^1.1.6"
+    "resolve": "^1.1.7"
   },
   "devDependencies": {
     "babel-cli": "^6.3.17",
