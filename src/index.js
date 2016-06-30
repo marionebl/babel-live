@@ -32,8 +32,12 @@ export default function configure(entrypoint, overrideRequires = {}, opts = {}) 
   function doRequire() {
     if (!requireInProgress) {
       requireInProgress = true;
-      babelRequire(entrypoint);
-      emitter.emit('hotswap');
+      try {
+        babelRequire(entrypoint);
+        emitter.emit('hotswap');
+      } catch (error) {
+        emitter.emit('error', error);
+      }
       setTimeout(() => {
         requireInProgress = false;
         if (extraRequireNeeded) {

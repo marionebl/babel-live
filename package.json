@@ -15,7 +15,7 @@
   },
   "files": [
     "index.js",
-    "lib/index.js"
+    "lib"
   ],
   "dependencies": {
     "babel-core": "^6.10.4",
