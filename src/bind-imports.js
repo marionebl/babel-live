@@ -1,14 +1,12 @@
 import * as t from 'babel-types';
 import traverse from 'babel-traverse';
+import merge from 'lodash.merge';
 
-export default function bindImports(ast) {
-  let container;
-  let dependencies = [];
+function detective(input) {
+  const dependencies = [];
+  const ast = merge({}, input);
 
   traverse(ast, {
-    Program(path) {
-       container = path.scope.generateUidIdentifier('modules');
-    },
     VariableDeclarator(path) {
       const init = path.node.init;
       const identifier = path.node.id;
@@ -23,41 +21,55 @@ export default function bindImports(ast) {
 
       // like: var foo = require('./bar');
       if (isStaticRequireCall) {
-        const requirePath = init.arguments[0].value;
+        const sourceName = init.arguments[0].value;
         // Only work on local requires
-        if (requirePath[0] !== '.') {
+        if (sourceName[0] !== '.') {
           return;
         }
-        
-        dependencies.push({
-          name: identifier.name,
-          path: requirePath,
-          init: init
-        });
 
-        path.remove();
-        path.scope.rename(identifier.name, `${container.name}.${identifier.name}`);
+        dependencies.push({
+          specifierName: identifier.name,
+          sourceName: sourceName,
+          path: path,
+          type: 'default'
+        });
       }
     }
   });
+
+  return dependencies;
+}
+
+export default function bindImports(input) {
+  const ast = merge({}, input);
+  const dependencies = detective(ast);
   
   traverse(ast, {
     Program(path) {
+      const containerPath = path.scope.generateUidIdentifier('modules');
+
       const properties = dependencies.map(dependency => {
+        const {specifierName} = dependency;
+        const init = dependency.path.node.init;
+
+        dependency.path.remove();
+        dependency.path.scope.rename(specifierName, `${containerPath.name}.${specifierName}`);
+
         return t.objectMethod(
           'get',
-          t.identifier(dependency.name),
+          t.identifier(specifierName),
           [],
           t.BlockStatement([
-            t.returnStatement(dependency.init)
+            t.returnStatement(init)
           ])
         )
       });
+
       if (properties.length > 0) {
         const modules = t.objectExpression(properties);
         const modulesDeclaration = t.VariableDeclaration('const', [
           t.VariableDeclarator(
-            container,
+            containerPath,
             modules
           )
         ]);

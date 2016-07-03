@@ -7,6 +7,7 @@ import resolve from 'resolve';
 import chokidar from 'chokidar';
 import {parse} from 'babylon';
 import {transformFromAst} from 'babel-core';
+import codeFrame from 'babel-code-frame';
 
 import bindImports from './bind-imports';
 
@@ -17,7 +18,7 @@ export default function configure(entrypoint, overrideRequires = {}, opts = {}) 
   const emitter = new EventEmitter();
 
   opts = opts || {};
-  if (opts.sourceMap !== false) opts.sourceMap = "inline";
+  // if (opts.sourceMap !== false) opts.sourceMap = "inline";
 
   let requireInProgress = false;
   let extraRequireNeeded = false;
@@ -124,29 +125,52 @@ export default function configure(entrypoint, overrideRequires = {}, opts = {}) 
 
   function babelLoad(filename) {
     const src = fs.readFileSync(filename, 'utf8');
-    const ast = parse(src, {
-      sourceType: 'module',
-      plugins: [
-        'jsx',
-        'asyncFunctions',
-        'classConstructorCall',
-        'doExpressions',
-        'trailingFunctionCommas',
-        'objectRestSpread',
-        'decorators',
-        'classProperties',
-        'exportExtensions',
-        'exponentiationOperator',
-        'asyncGenerators',
-        'functionBind',
-        'functionSent'
-      ]
-    });
-    const bound = bindImports(ast);
 
-    opts.filename = filename;
-    const {code} = transformFromAst(bound, src, opts);
-    return code;
+    try {
+      const ast = parse(src, {
+        sourceType: 'module',
+        plugins: [
+          'jsx',
+          'asyncFunctions',
+          'classConstructorCall',
+          'doExpressions',
+          'trailingFunctionCommas',
+          'objectRestSpread',
+          'decorators',
+          'classProperties',
+          'exportExtensions',
+          'exponentiationOperator',
+          'asyncGenerators',
+          'functionBind',
+          'functionSent'
+        ]
+      });
+
+      const pretransformed = transformFromAst(ast, src, {
+        filename: filename,
+        presets: [],
+        plugins: [
+          'add-module-exports',
+          'transform-es2015-modules-commonjs'
+        ]
+      });
+
+      const boundmodules = bindImports(pretransformed.ast);
+
+      opts.filename = filename;
+      const {code} = transformFromAst(boundmodules, src, opts);
+      return code;
+
+    } catch (error) {
+      const {loc} = error;
+
+      if (loc) {
+        const frame = codeFrame(src, loc.line, loc.column + 1, opts);
+        error.codeFrame = frame;
+        error.message = [error.message, frame].join('\n');
+      }
+      throw error;
+    }
   }
 
   return babelRequire(entrypoint);
