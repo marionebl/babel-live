@@ -150,7 +150,6 @@ export default function configure(entrypoint, overrideRequires = {}, opts = {}) 
         filename: filename,
         presets: [],
         plugins: [
-          'add-module-exports',
           'transform-es2015-modules-commonjs'
         ]
       });

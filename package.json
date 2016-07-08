@@ -2,6 +2,9 @@
   "name": "@marionebl/babel-live",
   "version": "1.4.0",
   "description": "Hot module replacement for babel-compiled programs",
+  "bin": {
+    "babel-live": "lib/cli.js"
+  },
   "scripts": {
     "start": "npm run build -- --watch",
     "prepublish": "npm run build",
